@@ -65,6 +65,7 @@
       <el-table-column label="备注说明" align="center" prop="remark" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
+          <el-button link type="primary" @click="getRangeInfo(scope.row)" v-hasPermi="['manage:node:list']">查看详情</el-button>
           <el-button link type="primary" @click="handleUpdate(scope.row)" v-hasPermi="['manage:region:edit']">修改</el-button>
           <el-button link type="primary" @click="handleDelete(scope.row)" v-hasPermi="['manage:region:remove']">删除</el-button>
         </template>
@@ -96,11 +97,25 @@
         </div>
       </template>
     </el-dialog>
+<!--    查看详情对话框-->
+    <el-dialog title="区域详情" v-model="getRangeInfoOpen" width="500px" append-to-body>
+      <el-form-item label="区域名称" prop="regionName">
+        <el-input v-model="form.regionName" />
+      </el-form-item>
+      <label>包含点位：</label>
+      <el-table :data="nodeList" style="width: 100%">
+        <el-table-column prop="id" label="序号" type="index" width="50" align="center" />
+        <el-table-column prop="nodeName" label="点位名称" align="center" />
+        <el-table-column prop="vmCount" label="设备数量" align="center" />
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="Region">
 import { listRegion, getRegion, delRegion, addRegion, updateRegion } from "@/api/manage/region";
+import { listNode } from "@/api/manage/node";
+import { loadAllParams } from '@/api/page';
 
 const { proxy } = getCurrentInstance();
 
@@ -198,6 +213,24 @@ function handleUpdate(row) {
     open.value = true;
     title.value = "修改区域管理";
   });
+}
+
+/** 查看详情 */
+const nodeList = ref([]);
+const getRangeInfoOpen = ref(false);
+function getRangeInfo(row) {
+  // 查询区域详情
+  reset();
+  const _id = row.id || ids.value
+  getRegion(_id).then(response => {
+    form.value = response.data;
+  });
+  // 查询区域下所有点位
+  loadAllParams.regionId = _id;
+  listNode(loadAllParams).then(response => {
+    nodeList.value = response.rows;
+  });
+  getRangeInfoOpen.value = true;
 }
 
 /** 提交按钮 */
